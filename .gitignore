@@ -1,0 +1,95 @@
+# ==========================================================
+# Environment / Konfigurasi rahasia (JANGAN pernah di-commit)
+# ==========================================================
+.env
+.env.backup
+.env.production
+.env.local
+.env.*.local
+!.env.example
+.agents
+.claude
+.codex
+.github
+.pi
+# ==========================================================
+# PHP / Composer
+# ==========================================================
+/vendor
+composer.phar
+.phpactor.json
+.php-cs-fixer.cache
+.phpunit.result.cache
+.phpunit.testdox
+/.phpunit.cache
+
+# ==========================================================
+# Laravel runtime
+# ==========================================================
+/bootstrap/ssr
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/storage/logs/*.log
+# Wayfinder menghasilkan file TS secara otomatis dari rute backend
+/resources/js/actions
+/resources/js/routes
+/resources/js/wayfinder
+
+# ==========================================================
+# Node / Frontend (React, Vite, Tailwind)
+# ==========================================================
+/node_modules
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+# ==========================================================
+# Autentikasi / kredensial tooling
+# ==========================================================
+/auth.json
+
+# ==========================================================
+# Homestead / Vagrant
+# ==========================================================
+Homestead.json
+Homestead.yaml
+.auth.json
+.vagrant/
+
+# ==========================================================
+# Editor / IDE
+# ==========================================================
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# ==========================================================
+# Sistem Operasi
+# ==========================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ==========================================================
+# Arsip / duplikat file
+# ==========================================================
+*.bak
+*.orig
+*.swp
+*~
