@@ -1,11 +1,12 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AbsensiController;
-use App\Http\Controllers\RekapController;
-use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FaceEnrollController;
+use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\OfficeSettingController;
+use App\Http\Controllers\RekapController;
+use Illuminate\Support\Facades\Route;
 
 // Otomatis redirect berdasarkan status login
 Route::get('/', function () {
@@ -35,7 +36,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:admin')->group(function () {
         // Route untuk CRUD Karyawan
         Route::resource('karyawan', KaryawanController::class)->except('show');
-
+        Route::get('/pengaturan-lokasi', [OfficeSettingController::class, 'edit'])->name('office-setting.edit');
+        Route::put('/pengaturan-lokasi', [OfficeSettingController::class, 'update'])->name('office-setting.update');
         // Route untuk kelola Wajah
         Route::get('/karyawan/{karyawan}/enroll-wajah', [FaceEnrollController::class, 'form'])
             ->name('karyawan.enroll-wajah');

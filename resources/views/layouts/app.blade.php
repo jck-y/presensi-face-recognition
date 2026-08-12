@@ -20,6 +20,7 @@
             @endif
             @if(auth()->user()->role === 'admin')
                 <a class="nav-link" href="{{ route('karyawan.index') }}">Kelola Karyawan</a>
+                <a class="nav-link" href="{{ route('office-setting.edit') }}">Pengaturan Lokasi</a>
             @endif
         @endauth
     </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Absensi;
+use App\Models\OfficeSetting;
 use App\Services\LocationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,12 +14,13 @@ class AbsensiController extends Controller
 {
     public function form()
     {
-        return view('presensi');
+        $office = OfficeSetting::first();
+
+        return view('presensi', compact('office'));
     }
 
     public function store(Request $request)
     {
-        // 1. Validasi inputan
         $request->validate([
             'foto' => 'required|image|max:5120',
             'latitude' => 'required|numeric',
@@ -28,37 +30,35 @@ class AbsensiController extends Controller
 
         $karyawan = Auth::user();
 
-        // 2. Cek lokasi (Apakah masuk di dalam radius kantor?)
-        if (!LocationService::isWithinOffice($request->latitude, $request->longitude)) {
-            return back()->withErrors(['lokasi' => 'Anda berada di luar radius kantor.']);
+        // 1. Cek Lokasi Database Baru
+        if (! LocationService::isWithinOffice($request->latitude, $request->longitude)) {
+            return response()->json(['errors' => ['lokasi' => ['Anda berada di luar radius kantor.']]], 422);
         }
 
-        // 3. Ambil data wajah (embedding) karyawan dari database
+        // 2. Ambil wajah terdaftar
         $stored = DB::selectOne(
             'SELECT embedding::text AS embedding_text FROM wajah_karyawan WHERE karyawan_id = ?',
             [$karyawan->id]
         );
 
-        if (!$stored) {
-            return back()->withErrors(['foto' => 'Wajah Anda belum didaftarkan. Hubungi admin.']);
+        if (! $stored) {
+            return response()->json(['errors' => ['foto' => ['Wajah Anda belum didaftarkan, hubungi admin.']]], 422);
         }
 
-        // 4. Verifikasi kecocokan wajah ke FastAPI
+        // 3. Verifikasi AI ke FastAPI
         $response = Http::attach(
-            'file',
-            file_get_contents($request->file('foto')->getRealPath()),
-            'presensi.jpg'
+            'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
         )->post('http://127.0.0.1:8001/verify', [
             'stored_embedding' => $stored->embedding_text,
         ]);
 
         $hasil = $response->json();
 
-        if (!($hasil['match'] ?? false)) {
-            return back()->withErrors(['foto' => 'Wajah tidak cocok. Presensi ditolak!']);
+        if (! ($hasil['match'] ?? false)) {
+            return response()->json(['errors' => ['foto' => ['Wajah tidak cocok, presensi ditolak.']]], 422);
         }
 
-        // 5. Jika cocok, simpan foto ke folder storage dan catat di database
+        // 4. Catat jika sukses
         $path = $request->file('foto')->store('presensi', 'public');
 
         Absensi::create([
@@ -69,9 +69,9 @@ class AbsensiController extends Controller
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'foto_path' => $path,
-            'status_absensi' => 'TW', // Tepat Waktu (sementara hardcode dulu)
+            'status_absensi' => 'TW',
         ]);
 
-        return back()->with('status', 'Presensi ' . $request->jenis_absensi . ' berhasil dicatat!');
+        return response()->json(['status' => 'Presensi berhasil dicatat.']);
     }
 }
