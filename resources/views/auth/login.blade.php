@@ -40,5 +40,13 @@
     </form>
 </div>
 
+<script>
+    // Minta izin akses lokasi begitu halaman login terbuka,
+    // agar halaman presensi nanti langsung bisa memakai GPS.
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function () {}, function () {});
+    }
+</script>
+
 </body>
 </html>

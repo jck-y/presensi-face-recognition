@@ -41,12 +41,16 @@ let fotoBlob = null;
 let currentStream = null;
 let lokasiOK = false;
 
-// Titik kantor dari database (dikirim dari server)
-const office = @json($office ? [
-    'latitude' => (float) $office->latitude,
-    'longitude' => (float) $office->longitude,
-    'radius' => (int) $office->radius_meters,
-] : null);
+@php
+    // Titik kantor dari database (dikirim dari server)
+    $officePoint = $office ? [
+        'latitude' => (float) $office->latitude,
+        'longitude' => (float) $office->longitude,
+        'radius' => (int) $office->radius_meters,
+    ] : null;
+@endphp
+
+const office = @json($officePoint);
 
 // Rumus jarak haversine (sama dengan App\Services\LocationService)
 function haversine(lat1, lon1, lat2, lon2) {

@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Http\Client\ConnectionException;
 
 class AbsensiController extends Controller
 {
@@ -46,11 +47,18 @@ class AbsensiController extends Controller
         }
 
         // 3. Verifikasi AI ke FastAPI
-        $response = Http::attach(
-            'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
-        )->post('http://127.0.0.1:8001/verify', [
-            'stored_embedding' => $stored->embedding_text,
-        ]);
+// 3. Verifikasi AI ke FastAPI
+        try {
+            $response = Http::timeout(7)->attach(
+                'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
+            )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001') . '/verify', [
+                'stored_embedding' => $stored->embedding_text,
+            ]);
+        } catch (ConnectionException $e) {
+            return response()->json([
+                'errors' => ['foto' => ['Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']]
+            ], 503);
+        }
 
         $hasil = $response->json();
 
@@ -59,7 +67,7 @@ class AbsensiController extends Controller
         }
 
         // 4. Catat jika sukses
-        $path = $request->file('foto')->store('presensi', 'public');
+        $path = $request->file('foto')->store('presensi', 'supabase');
 
         Absensi::create([
             'karyawan_id' => $karyawan->id,

@@ -29,7 +29,15 @@ return [
     */
 
     'disks' => [
-
+        'supabase' => [
+        'driver' => 's3',
+        'key' => env('SUPABASE_STORAGE_KEY'),
+        'secret' => env('SUPABASE_STORAGE_SECRET'),
+        'region' => 'auto',
+        'bucket' => env('SUPABASE_STORAGE_BUCKET', 'presensi'),
+        'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'), 
+        'use_path_style_endpoint' => true,
+        ],
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

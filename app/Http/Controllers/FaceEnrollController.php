@@ -6,7 +6,7 @@ use App\Models\Karyawan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-
+use Illuminate\Http\Client\ConnectionException;
 class FaceEnrollController extends Controller
 {
     // Fungsi untuk menampilkan halaman form (View)
@@ -22,11 +22,14 @@ class FaceEnrollController extends Controller
         $request->validate(['foto' => 'required|image|max:5120']);
 
         // 2. Kirim foto ke FastAPI pengenalan wajah
-        $response = Http::attach(
-            'file',
-            file_get_contents($request->file('foto')->getRealPath()),
-            'wajah.jpg'
-        )->post('http://127.0.0.1:8001/enroll');
+        try {
+            $response = Http::timeout(7)->attach(
+                'file', file_get_contents($request->file('foto')->getRealPath()), 'wajah.jpg'
+            )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001') . '/enroll');
+        } catch (ConnectionException $e) {
+            // Perhatikan bedanya: ini menggunakan back()->withErrors() bukan response()->json()
+            return back()->withErrors(['foto' => 'Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']);
+        }
 
         $hasil = $response->json();
 
