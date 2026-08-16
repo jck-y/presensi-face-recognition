@@ -3,6 +3,7 @@
   "framework": null,
   "buildCommand": "echo 'Skip build, aplikasi Blade tidak perlu compile Vite'",
   "installCommand": "echo 'Skip npm install, tidak diperlukan'",
+  "outputDirectory": "public",
   "functions": {
     "api/index.php": { "runtime": "vercel-php@0.7.4" }
   },
