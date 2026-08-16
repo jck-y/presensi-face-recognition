@@ -33,10 +33,11 @@ return [
         'driver' => 's3',
         'key' => env('SUPABASE_STORAGE_KEY'),
         'secret' => env('SUPABASE_STORAGE_SECRET'),
-        'region' => 'auto',
+        'region' => 'ap-southeast-1',
         'bucket' => env('SUPABASE_STORAGE_BUCKET', 'presensi'),
         'endpoint' => env('SUPABASE_STORAGE_ENDPOINT'), 
         'use_path_style_endpoint' => true,
+        'url' => env('SUPABASE_STORAGE_PUBLIC_URL'),
         ],
         'local' => [
             'driver' => 'local',

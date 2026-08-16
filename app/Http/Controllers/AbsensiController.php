@@ -67,8 +67,11 @@ class AbsensiController extends Controller
         }
 
         // 4. Catat jika sukses
-        $path = $request->file('foto')->store('presensi', 'supabase');
-
+        $path = $request->file('foto')->store('uploads', 'supabase');
+        if (!$path) {
+            \Log::error('Upload foto ke Supabase Storage gagal. Cek kredensial SUPABASE_STORAGE_*.');
+            return response()->json(['errors' => ['foto' => ['Gagal menyimpan foto, coba lagi.']]], 500);
+        }
         Absensi::create([
             'karyawan_id' => $karyawan->id,
             'tanggal' => now()->toDateString(),
