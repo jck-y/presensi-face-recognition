@@ -5,13 +5,15 @@
 
     <!-- Form Filter Data -->
     <div class="bg-light p-3 rounded mb-4 border">
-        <form method="GET" action="{{ route('rekap.index') }}" class="row g-2 align-items-center">
-            <div class="col-auto">
+        <form method="GET" action="{{ route('rekap.index') }}" class="row g-2 align-items-end">
+            <div class="col-12 col-sm-auto">
+                <label class="form-label small text-muted mb-1">Tanggal</label>
                 <input type="date" name="tanggal" class="form-control" value="{{ request('tanggal') }}">
             </div>
             
             @if(auth()->user()->role !== 'karyawan')
-            <div class="col-auto">
+            <div class="col-12 col-sm-auto">
+                <label class="form-label small text-muted mb-1">Divisi</label>
                 <select name="divisi_id" class="form-select">
                     <option value="">-- Semua Divisi --</option>
                     @foreach($divisis as $div)
@@ -23,15 +25,41 @@
             </div>
             @endif
             
-            <div class="col-auto">
-                <button type="submit" class="btn btn-success">Filter</button>
-                <a href="{{ route('rekap.index') }}" class="btn btn-secondary">Reset</a>
+            <div class="col-12 col-sm-auto d-flex gap-2">
+                <button type="submit" class="btn btn-success flex-fill">Filter</button>
+                <a href="{{ route('rekap.index') }}" class="btn btn-secondary flex-fill">Reset</a>
             </div>
         </form>
     </div>
 
-    <!-- Tabel Data -->
-    <div class="table-responsive">
+    <!-- Tampilan Mobile: Kartu -->
+    <div class="d-md-none">
+        @forelse($rekap as $row)
+            <div class="card mb-3 shadow-sm">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="fw-bold">{{ $row->karyawan->nama_karyawan }}</div>
+                            <div class="text-muted small">{{ $row->karyawan->divisi->nama_divisi }}</div>
+                        </div>
+                        <span class="badge bg-info text-dark flex-shrink-0">{{ $row->status_absensi }}</span>
+                    </div>
+                    <div class="small text-muted mb-3">
+                        {{ $row->tanggal }} · {{ $row->waktu }} · {{ ucfirst($row->jenis_absensi) }}
+                    </div>
+                    <a href="{{ Storage::disk('supabase')->url($row->foto_path) }}" target="_blank">
+                        <img src="{{ Storage::disk('supabase')->url($row->foto_path) }}" width="80" height="80"
+                             class="rounded border object-fit-cover" alt="Foto presensi">
+                    </a>
+                </div>
+            </div>
+        @empty
+            <div class="text-center text-muted py-4">Belum ada data presensi.</div>
+        @endforelse
+    </div>
+
+    <!-- Tampilan Desktop: Tabel -->
+    <div class="table-responsive d-none d-md-block">
         <table class="table table-bordered table-striped bg-white">
             <thead class="table-primary">
                 <tr>
@@ -56,7 +84,9 @@
                             <span class="badge bg-info text-dark">{{ $row->status_absensi }}</span>
                         </td>
                         <td>
-                            <a href="{{ asset('storage/' . $row->foto_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">Lihat</a>
+                            <a href="{{ Storage::disk('supabase')->url($row->foto_path) }}" target="_blank">
+                                <img src="{{ Storage::disk('supabase')->url($row->foto_path) }}" width="60" class="rounded border">
+                            </a>
                         </td>
                     </tr>
                 @empty

@@ -46,6 +46,13 @@
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function () {}, function () {});
     }
+
+    // Tampilkan indikator loading saat form login dikirim
+    document.querySelector('.login-box form').addEventListener('submit', function () {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Memproses...';
+    });
 </script>
 
 </body>

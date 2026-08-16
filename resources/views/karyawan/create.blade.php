@@ -2,7 +2,7 @@
 @section('content')
 <div class="card p-4 mx-auto" style="max-width: 600px;">
     <h3>Tambah Karyawan</h3>
-    <form method="POST" action="{{ route('karyawan.store') }}">
+    <form method="POST" action="{{ route('karyawan.store') }}" data-loading-message="Menyimpan karyawan...">
         @csrf
         <div class="mb-3"><label>NIP</label>
             <input type="text" name="nip" class="form-control" value="{{ old('nip') }}"></div>
@@ -13,14 +13,14 @@
         <div class="mb-3"><label>Password</label>
             <input type="password" name="password" class="form-control"></div>
         <div class="mb-3"><label>Divisi</label>
-            <select name="divisi_id" class="form-control">
+            <select name="divisi_id" class="form-select">
                 @foreach($divisis as $d)
                     <option value="{{ $d->id }}">{{ $d->nama_divisi }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-3"><label>Role</label>
-            <select name="role" class="form-control">
+            <select name="role" class="form-select">
                 <option value="karyawan">Karyawan</option>
                 <option value="pimpinan">Pimpinan</option>
                 <option value="admin">Admin</option>

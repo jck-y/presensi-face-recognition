@@ -4,7 +4,7 @@
     <h3 class="mb-3">Daftar Wajah: {{ $karyawan->nama_karyawan }}</h3>
     <p class="text-muted">Silakan unggah atau ambil foto wajah karyawan dengan jelas.</p>
 
-    <form method="POST" action="{{ route('karyawan.enroll-wajah.store', $karyawan->id) }}" enctype="multipart/form-data">
+    <form method="POST" action="{{ route('karyawan.enroll-wajah.store', $karyawan->id) }}" enctype="multipart/form-data" data-loading-message="Memproses wajah...">
         @csrf
         
         <div class="mb-3">
@@ -16,7 +16,7 @@
     </form>
     
     <!-- Tombol Hapus Wajah (opsional, sudah diatur di controller) -->
-    <form method="POST" action="{{ route('karyawan.hapus-wajah', $karyawan->id) }}" onsubmit="return confirm('Yakin ingin menghapus data wajah ini?')">
+    <form method="POST" action="{{ route('karyawan.hapus-wajah', $karyawan->id) }}" onsubmit="return confirm('Yakin ingin menghapus data wajah ini?')" data-loading-message="Menghapus data wajah...">
         @csrf
         @method('DELETE')
         <button type="submit" class="btn btn-outline-danger w-100">Hapus Data Wajah</button>

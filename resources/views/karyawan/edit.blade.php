@@ -2,7 +2,7 @@
 @section('content')
 <div class="card p-4 mx-auto" style="max-width: 600px;">
     <h3>Edit Karyawan</h3>
-    <form method="POST" action="{{ route('karyawan.update', $karyawan) }}">
+    <form method="POST" action="{{ route('karyawan.update', $karyawan) }}" data-loading-message="Menyimpan perubahan...">
         @csrf
         @method('PUT')
         <div class="mb-3"><label>NIP</label>
@@ -14,14 +14,14 @@
         <div class="mb-3"><label>Password</label>
             <input type="password" name="password" class="form-control" placeholder="Kosongkan jika tidak ingin ganti"></div>
         <div class="mb-3"><label>Divisi</label>
-            <select name="divisi_id" class="form-control">
+            <select name="divisi_id" class="form-select">
                 @foreach($divisis as $d)
                     <option value="{{ $d->id }}" {{ $karyawan->divisi_id == $d->id ? 'selected' : '' }}>{{ $d->nama_divisi }}</option>
                 @endforeach
             </select>
         </div>
         <div class="mb-3"><label>Role</label>
-            <select name="role" class="form-control">
+            <select name="role" class="form-select">
                 <option value="karyawan" {{ $karyawan->role == 'karyawan' ? 'selected' : '' }}>Karyawan</option>
                 <option value="pimpinan" {{ $karyawan->role == 'pimpinan' ? 'selected' : '' }}>Pimpinan</option>
                 <option value="admin" {{ $karyawan->role == 'admin' ? 'selected' : '' }}>Admin</option>

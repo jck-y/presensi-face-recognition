@@ -2,7 +2,7 @@
 @section('content')
 <div class="card p-4 mx-auto" style="max-width: 600px;">
     <h3>Pengaturan Lokasi Kantor</h3>
-    <form method="POST" action="{{ route('office-setting.update') }}">
+    <form method="POST" action="{{ route('office-setting.update') }}" data-loading-message="Menyimpan pengaturan...">
         @csrf @method('PUT')
         <div class="mb-3"><label>Latitude</label>
             <input type="text" name="latitude" class="form-control" value="{{ old('latitude', $office->latitude) }}"></div>

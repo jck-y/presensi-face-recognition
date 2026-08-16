@@ -15,17 +15,17 @@
         <input type="hidden" name="longitude" id="longitude">
 
         <label>Jenis Presensi</label>
-        <select name="jenis_absensi" class="form-select mb-3">
+        <select name="jenis_absensi" class="form-select form-select-lg mb-3">
             <option value="masuk">Masuk</option>
             <option value="pulang">Pulang</option>
         </select>
 
         <div class="d-flex gap-2">
-            <button type="button" id="btnAmbil" class="btn btn-secondary flex-fill">Ambil Foto</button>
-            <button type="button" id="btnUlang" class="btn btn-warning flex-fill" style="display:none;">Ulangi</button>
+            <button type="button" id="btnAmbil" class="btn btn-lg btn-secondary flex-fill">Ambil Foto</button>
+            <button type="button" id="btnUlang" class="btn btn-lg btn-warning flex-fill" style="display:none;">Ulangi</button>
         </div>
 
-        <button type="submit" id="btnKirim" class="btn btn-primary w-100 mt-2" disabled>Kirim Presensi</button>
+        <button type="submit" id="btnKirim" class="btn btn-lg btn-primary w-100 mt-2" disabled>Kirim Presensi</button>
     </form>
 </div>
 
@@ -161,6 +161,7 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
     const originalText = btnKirim.innerText;
     btnKirim.innerText = "Memproses Wajah...";
     btnKirim.disabled = true;
+    showLoading('Memproses wajah, mohon tunggu...');
 
     fetch("{{ route('presensi.store') }}", {
         method: 'POST',
@@ -169,6 +170,7 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
     })
     .then(res => res.json())
     .then(data => {
+        hideLoading();
         if (data.status) {
             alert(data.status); // Sukses
             location.reload();
@@ -180,6 +182,7 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
         }
     })
     .catch(() => {
+        hideLoading();
         alert('Terjadi kesalahan koneksi server. Coba lagi.');
         btnKirim.innerText = originalText;
         updateSubmitState();
