@@ -6,42 +6,36 @@ use App\Models\Karyawan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\ConnectionException;
+
 class FaceEnrollController extends Controller
 {
-    // Fungsi untuk menampilkan halaman form (View)
     public function form(Karyawan $karyawan)
     {
         return view('enroll-wajah', compact('karyawan'));
     }
 
-    // Fungsi untuk memproses foto yang dikirim
     public function store(Request $request, Karyawan $karyawan)
     {
-        // 1. Pastikan yang diunggah benar-benar file foto
         $request->validate(['foto' => 'required|image|max:5120']);
 
-        // 2. Kirim foto ke FastAPI pengenalan wajah
         try {
-            $response = Http::timeout(7)->attach(
-                'file', file_get_contents($request->file('foto')->getRealPath()), 'wajah.jpg'
-            )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001') . '/enroll');
-        } catch (ConnectionException $e) {
-            // Perhatikan bedanya: ini menggunakan back()->withErrors() bukan response()->json()
-            return back()->withErrors(['foto' => 'Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']);
+            $response = Http::timeout(10)
+                ->withHeaders(['ngrok-skip-browser-warning' => 'true'])
+                ->attach('file', file_get_contents($request->file('foto')->getRealPath()), 'wajah.jpg')
+                ->post(config('services.fastapi.url') . '/enroll');
+        } catch (\Throwable $e) {
+            \Log::error('Gagal hubungi FastAPI saat enroll: ' . $e->getMessage());
+            return back()->withErrors(['foto' => 'Servis pengenalan wajah tidak bisa dihubungi. Pastikan program di komputer admin sudah dijalankan, dan cek URL ngrok masih aktif.']);
         }
 
         $hasil = $response->json();
 
-        // 3. Jika wajah tidak terdeteksi oleh AI
         if (!($hasil['success'] ?? false)) {
             return back()->withErrors(['foto' => $hasil['message'] ?? 'Wajah tidak terdeteksi, coba foto lain.']);
         }
 
-        // 4. Ubah format array menjadi string untuk pgvector
         $vectorString = '[' . implode(',', $hasil['embedding']) . ']';
 
-        // 5. Simpan ke database (Jika sudah ada, timpa/update dengan yang baru)
         DB::statement(
             'INSERT INTO wajah_karyawan (karyawan_id, embedding, created_at, updated_at)
              VALUES (?, ?::vector, NOW(), NOW())
@@ -51,6 +45,7 @@ class FaceEnrollController extends Controller
 
         return back()->with('status', 'Wajah berhasil didaftarkan untuk ' . $karyawan->nama_karyawan);
     }
+
     public function destroy(Karyawan $karyawan)
     {
         DB::table('wajah_karyawan')->where('karyawan_id', $karyawan->id)->delete();
