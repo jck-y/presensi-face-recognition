@@ -48,18 +48,19 @@ class AbsensiController extends Controller
 
         // 3. Verifikasi AI ke FastAPI
 // 3. Verifikasi AI ke FastAPI
-        try {
-            $response = Http::timeout(7)->attach(
-                'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
-            )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001') . '/verify', [
-                'stored_embedding' => $stored->embedding_text,
-            ]);
+try {
+            $response = Http::timeout(9)
+                ->withHeaders(['ngrok-skip-browser-warning' => 'true']) // <-- BARIS INI WAJIB DITAMBAHKAN
+                ->attach(
+                    'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
+                )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001') . '/verify', [
+                    'stored_embedding' => $stored->embedding_text,
+                ]);
         } catch (ConnectionException $e) {
             return response()->json([
                 'errors' => ['foto' => ['Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']]
             ], 503);
         }
-
         $hasil = $response->json();
 
         if (! ($hasil['match'] ?? false)) {
