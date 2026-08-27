@@ -98,6 +98,9 @@ class AbsensiController extends Controller
             return response()->json(['errors' => ['foto' => ['Gagal menyimpan foto, coba lagi.']]], 500);
         }
 
+        // Admin langsung 'hadir' (tidak perlu verifikasi), karyawan tetap 'TW'
+        $status = $karyawan->role === 'admin' ? 'hadir' : 'TW';
+
         Absensi::create([
             'karyawan_id' => $karyawan->id,
             'tanggal' => now()->toDateString(),
@@ -106,7 +109,7 @@ class AbsensiController extends Controller
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'foto_path' => $path,
-            'status_absensi' => 'TW',
+            'status_absensi' => $status,
         ]);
 
         return response()->json(['status' => 'Presensi berhasil dicatat.']);
