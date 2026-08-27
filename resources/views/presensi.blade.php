@@ -225,6 +225,11 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
             btnKirim.innerText = originalText;
             btnKirim.disabled = false;
             updateSubmitState();
+        } else if (data.message) {
+            alert('Error server: ' + data.message);
+            btnKirim.innerText = originalText;
+            btnKirim.disabled = false;
+            updateSubmitState();
         } else {
             alert('Terjadi kesalahan tidak diketahui dari server.');
             btnKirim.innerText = originalText;
