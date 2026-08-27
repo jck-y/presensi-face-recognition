@@ -206,10 +206,17 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
         hideLoading();
         if (data.status) {
             alert(data.status);
-            location.reload();
+            @if(auth()->user()->role === 'admin')
+                // Admin: langsung ke dashboard setelah absen
+                window.location.replace("{{ route('redirect-home') }}");
+            @else
+                // Karyawan: reload halaman presensi
+                window.location.replace("{{ route('presensi.form') }}");
+            @endif
         } else if (data.errors) {
             alert(Object.values(data.errors).flat().join('\n'));
             btnKirim.innerText = originalText;
+            btnKirim.disabled = false;
             updateSubmitState();
         }
     })
@@ -217,6 +224,7 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
         hideLoading();
         alert('Terjadi kesalahan koneksi server. Coba lagi.');
         btnKirim.innerText = originalText;
+        btnKirim.disabled = false;
         updateSubmitState();
     });
 });
