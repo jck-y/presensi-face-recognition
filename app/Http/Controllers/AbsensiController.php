@@ -46,9 +46,16 @@ class AbsensiController extends Controller
             $alreadyAttended = Absensi::where('karyawan_id', $karyawan->id)
                 ->where('tanggal', now()->toDateString())
                 ->where('jenis_absensi', 'masuk')
-                ->exists();
+                ->first();
 
             if ($alreadyAttended) {
+                // Jika status masih 'TW' (dari test lama), update ke 'hadir'
+                if ($alreadyAttended->status_absensi === 'TW') {
+                    $alreadyAttended->update(['status_absensi' => 'hadir']);
+
+                    return response()->json(['status' => 'Presensi berhasil dicatat.']);
+                }
+
                 return response()->json([
                     'errors' => ['foto' => ['Anda sudah melakukan absensi masuk hari ini.']],
                 ], 422);
