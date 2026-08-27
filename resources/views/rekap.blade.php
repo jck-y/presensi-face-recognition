@@ -47,7 +47,11 @@
                             <div class="fw-bold">{{ $row->karyawan->nama_karyawan }}</div>
                             <div class="text-muted small">{{ $row->karyawan->divisi->nama_divisi }}</div>
                         </div>
-                        @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+                        @php
+                            $isOwnRecord = auth()->id() === $row->karyawan_id;
+                            $canEditStatus = in_array(auth()->user()->role, ['admin', 'super_admin']) && !$isOwnRecord;
+                        @endphp
+                        @if($canEditStatus)
                         <form action="{{ route('rekap.update-status', $row) }}" method="POST" class="flex-shrink-0">
                             @csrf @method('PUT')
                             <select name="status_absensi" class="form-select form-select-sm" onchange="this.form.submit()">
@@ -55,6 +59,8 @@
                                 <option value="tidak_hadir" {{ $row->status_absensi === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
                             </select>
                         </form>
+                        @elseif(in_array(auth()->user()->role, ['admin', 'super_admin']) && $isOwnRecord)
+                        <span class="badge bg-secondary flex-shrink-0">{{ $row->status_absensi === 'hadir' ? 'Hadir' : ($row->status_absensi === 'tidak_hadir' ? 'Tidak Hadir' : 'Menunggu Verifikasi') }}</span>
                         @else
                         <span class="badge bg-info text-dark flex-shrink-0">{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</span>
                         @endif
@@ -96,7 +102,11 @@
                         <td>{{ $row->waktu }}</td>
                         <td>{{ ucfirst($row->jenis_absensi) }}</td>
                         <td>
-                            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+                            @php
+                                $isOwnRecord = auth()->id() === $row->karyawan_id;
+                                $canEditStatus = in_array(auth()->user()->role, ['admin', 'super_admin']) && !$isOwnRecord;
+                            @endphp
+                            @if($canEditStatus)
                             <form action="{{ route('rekap.update-status', $row) }}" method="POST" class="d-inline">
                                 @csrf @method('PUT')
                                 <select name="status_absensi" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()">
@@ -104,6 +114,8 @@
                                     <option value="tidak_hadir" {{ $row->status_absensi === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
                                 </select>
                             </form>
+                            @elseif(in_array(auth()->user()->role, ['admin', 'super_admin']) && $isOwnRecord)
+                            <span class="badge bg-secondary">{{ $row->status_absensi === 'hadir' ? 'Hadir' : ($row->status_absensi === 'tidak_hadir' ? 'Tidak Hadir' : 'Menunggu Verifikasi') }}</span>
                             @else
                             <span class="badge bg-info text-dark">{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</span>
                             @endif

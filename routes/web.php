@@ -20,13 +20,14 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
 
     // Titik masuk setelah login, mengarahkan sesuai role
+    // Admin (non-superadmin) dipaksa absen dulu lewat middleware admin.attended
     Route::get('/home', function () {
         return match (auth()->user()->role) {
             'admin', 'super_admin' => redirect()->route('karyawan.index'),
             'pimpinan' => redirect()->route('rekap.index'),
             'karyawan' => redirect()->route('presensi.form'),
         };
-    })->name('redirect-home');
+    })->name('redirect-home')->middleware('admin.attended');
 
     Route::get('/presensi', [AbsensiController::class, 'form'])->name('presensi.form');
     Route::post('/presensi', [AbsensiController::class, 'store'])->name('presensi.store');
@@ -35,6 +36,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/rekap/export-pdf', [RekapController::class, 'exportPdf'])->name('rekap.export-pdf');
 
     // Admin & Super Admin: update status absensi di rekap
+    // Admin tidak boleh mengubah status absensi sendiri (dicek di controller)
     Route::middleware('role:admin,super_admin')->group(function () {
         Route::put('/rekap/{absensi}/status', [RekapController::class, 'updateStatus'])->name('rekap.update-status');
     });

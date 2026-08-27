@@ -1,33 +1,77 @@
 @extends('layouts.app')
 @section('content')
-<div class="card p-4 mx-auto" style="max-width: 400px;">
-    <h3 class="mb-3">Presensi Harian</h3>
 
-    <p id="status-lokasi" class="text-warning fw-bold mb-3">Mencari lokasi GPS Anda...</p>
+@if(auth()->user()->role === 'admin' && $todayAttendance)
+    {{-- Admin sudah absen hari ini, tampilkan data yang sudah ada --}}
+    <div class="card p-4 mx-auto" style="max-width: 400px;">
+        <h3 class="mb-3">Absensi Hari Ini</h3>
 
-    <video id="video" autoplay playsinline width="100%" class="border rounded d-block mb-3" style="background: #000;"></video>
-    <canvas id="canvas" width="320" height="240" style="display:none"></canvas>
-    <img id="preview" style="display:none; width: 100%;" class="border rounded d-block mb-3">
-
-    <form id="formPresensi">
-        @csrf
-        <input type="hidden" name="latitude" id="latitude">
-        <input type="hidden" name="longitude" id="longitude">
-
-        <label>Jenis Presensi</label>
-        <select name="jenis_absensi" class="form-select form-select-lg mb-3">
-            <option value="masuk">Masuk</option>
-            <option value="pulang">Pulang</option>
-        </select>
-
-        <div class="d-flex gap-2">
-            <button type="button" id="btnAmbil" class="btn btn-lg btn-secondary flex-fill">Ambil Foto</button>
-            <button type="button" id="btnUlang" class="btn btn-lg btn-warning flex-fill" style="display:none;">Ulangi</button>
+        <div class="alert alert-success mb-3">
+            Anda sudah melakukan absensi masuk hari ini.
         </div>
 
-        <button type="submit" id="btnKirim" class="btn btn-lg btn-primary w-100 mt-2" disabled>Kirim Presensi</button>
-    </form>
-</div>
+        <div class="mb-3">
+            <label class="form-label fw-bold">Waktu Masuk</label>
+            <p class="form-control-plaintext">{{ \Carbon\Carbon::parse($todayAttendance->waktu)->format('d M Y H:i:s') }}</p>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Foto Presensi</label>
+            <img src="{{ Storage::disk('supabase')->url($todayAttendance->foto_path) }}"
+                 alt="Foto presensi" class="img-fluid rounded border">
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Status</label>
+            <p class="form-control-plaintext">
+                @if($todayAttendance->status_absensi === 'hadir')
+                    <span class="badge bg-success">Hadir</span>
+                @elseif($todayAttendance->status_absensi === 'tidak_hadir')
+                    <span class="badge bg-danger">Tidak Hadir</span>
+                @else
+                    <span class="badge bg-warning text-dark">Menunggu Verifikasi</span>
+                @endif
+            </p>
+        </div>
+
+        <a href="{{ route('redirect-home') }}" class="btn btn-primary w-100">Kembali ke Dashboard</a>
+    </div>
+@else
+    {{-- Form presensi (untuk karyawan atau admin yang belum absen) --}}
+    <div class="card p-4 mx-auto" style="max-width: 400px;">
+        <h3 class="mb-3">Presensi Harian</h3>
+
+        <p id="status-lokasi" class="text-warning fw-bold mb-3">Mencari lokasi GPS Anda...</p>
+
+        <video id="video" autoplay playsinline width="100%" class="border rounded d-block mb-3" style="background: #000;"></video>
+        <canvas id="canvas" width="320" height="240" style="display:none"></canvas>
+        <img id="preview" style="display:none; width: 100%;" class="border rounded d-block mb-3">
+
+        <form id="formPresensi">
+            @csrf
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
+
+            <label>Jenis Presensi</label>
+            @if(auth()->user()->role === 'admin')
+                {{-- Admin hanya bisa absen masuk --}}
+                <input type="hidden" name="jenis_absensi" value="masuk">
+                <div class="form-control form-control-lg mb-3 bg-light">Masuk</div>
+            @else
+                <select name="jenis_absensi" class="form-select form-select-lg mb-3">
+                    <option value="masuk">Masuk</option>
+                    <option value="pulang">Pulang</option>
+                </select>
+            @endif
+
+            <div class="d-flex gap-2">
+                <button type="button" id="btnAmbil" class="btn btn-lg btn-secondary flex-fill">Ambil Foto</button>
+                <button type="button" id="btnUlang" class="btn btn-lg btn-warning flex-fill" style="display:none;">Ulangi</button>
+            </div>
+
+            <button type="submit" id="btnKirim" class="btn btn-lg btn-primary w-100 mt-2" disabled>Kirim Presensi</button>
+        </form>
+    </div>
 
 <script>
 const video = document.getElementById('video');
@@ -42,7 +86,6 @@ let currentStream = null;
 let lokasiOK = false;
 
 @php
-    // Titik kantor dari database (dikirim dari server)
     $officePoint = $office ? [
         'latitude' => (float) $office->latitude,
         'longitude' => (float) $office->longitude,
@@ -52,7 +95,6 @@ let lokasiOK = false;
 
 const office = @json($officePoint);
 
-// Rumus jarak haversine (sama dengan App\Services\LocationService)
 function haversine(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -62,12 +104,10 @@ function haversine(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Tombol kirim hanya aktif jika foto sudah diambil DAN lokasi masih dalam radius
 function updateSubmitState() {
     btnKirim.disabled = !(fotoBlob && lokasiOK);
 }
 
-// Aktifkan Kamera Depan
 function startCamera() {
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
         .then(stream => {
@@ -83,7 +123,6 @@ function startCamera() {
 }
 startCamera();
 
-// Ambil & pantau lokasi GPS dengan akurasi tinggi, tanpa memakai posisi basi (cache)
 function updateLokasi(pos) {
     const lat = pos.coords.latitude;
     const lng = pos.coords.longitude;
@@ -122,9 +161,7 @@ if (navigator.geolocation) {
     statusLokasi.className = 'text-danger fw-bold mb-3';
 }
 
-// Jepret Foto
 btnAmbil.addEventListener('click', () => {
-    // Sesuaikan ukuran canvas dengan rasio asli video
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
@@ -139,25 +176,21 @@ btnAmbil.addEventListener('click', () => {
         btnUlang.style.display = 'block';
         updateSubmitState();
 
-        // Matikan kamera sementara agar hemat baterai/memori
         currentStream.getTracks().forEach(track => track.stop());
     }, 'image/jpeg', 0.9);
 });
 
-// Ulangi Foto
 btnUlang.addEventListener('click', () => {
     fotoBlob = null;
     updateSubmitState();
     startCamera();
 });
 
-// Kirim Data Presensi
 document.getElementById('formPresensi').addEventListener('submit', function (e) {
     e.preventDefault();
     const formData = new FormData(this);
     formData.append('foto', fotoBlob, 'presensi.jpg');
 
-    // Ubah teks tombol jadi loading
     const originalText = btnKirim.innerText;
     btnKirim.innerText = "Memproses Wajah...";
     btnKirim.disabled = true;
@@ -172,10 +205,9 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
     .then(data => {
         hideLoading();
         if (data.status) {
-            alert(data.status); // Sukses
+            alert(data.status);
             location.reload();
         } else if (data.errors) {
-            // Tampilkan error jika lokasi/wajah salah
             alert(Object.values(data.errors).flat().join('\n'));
             btnKirim.innerText = originalText;
             updateSubmitState();
@@ -189,4 +221,5 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
     });
 });
 </script>
+@endif
 @endsection

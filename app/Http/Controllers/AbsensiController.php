@@ -5,19 +5,29 @@ namespace App\Http\Controllers;
 use App\Models\Absensi;
 use App\Models\OfficeSetting;
 use App\Services\LocationService;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\ConnectionException;
 
 class AbsensiController extends Controller
 {
     public function form()
     {
         $office = OfficeSetting::first();
+        $user = Auth::user();
 
-        return view('presensi', compact('office'));
+        // Jika admin (bukan super_admin), cek apakah sudah absen masuk hari ini
+        $todayAttendance = null;
+        if ($user->role === 'admin') {
+            $todayAttendance = Absensi::where('karyawan_id', $user->id)
+                ->where('tanggal', now()->toDateString())
+                ->where('jenis_absensi', 'masuk')
+                ->first();
+        }
+
+        return view('presensi', compact('office', 'todayAttendance'));
     }
 
     public function store(Request $request)
@@ -30,6 +40,20 @@ class AbsensiController extends Controller
         ]);
 
         $karyawan = Auth::user();
+
+        // Admin (bukan super_admin) hanya boleh absen masuk sekali sehari
+        if ($karyawan->role === 'admin' && $request->jenis_absensi === 'masuk') {
+            $alreadyAttended = Absensi::where('karyawan_id', $karyawan->id)
+                ->where('tanggal', now()->toDateString())
+                ->where('jenis_absensi', 'masuk')
+                ->exists();
+
+            if ($alreadyAttended) {
+                return response()->json([
+                    'errors' => ['foto' => ['Anda sudah melakukan absensi masuk hari ini.']],
+                ], 422);
+            }
+        }
 
         // 1. Cek Lokasi Database Baru
         if (! LocationService::isWithinOffice($request->latitude, $request->longitude)) {
@@ -47,18 +71,17 @@ class AbsensiController extends Controller
         }
 
         // 3. Verifikasi AI ke FastAPI
-// 3. Verifikasi AI ke FastAPI
-try {
+        try {
             $response = Http::timeout(9)
-                ->withHeaders(['ngrok-skip-browser-warning' => 'true']) // <-- BARIS INI WAJIB DITAMBAHKAN
+                ->withHeaders(['ngrok-skip-browser-warning' => 'true'])
                 ->attach(
                     'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
-                )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001') . '/verify', [
+                )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001').'/verify', [
                     'stored_embedding' => $stored->embedding_text,
                 ]);
         } catch (ConnectionException $e) {
             return response()->json([
-                'errors' => ['foto' => ['Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']]
+                'errors' => ['foto' => ['Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']],
             ], 503);
         }
         $hasil = $response->json();
@@ -69,10 +92,12 @@ try {
 
         // 4. Catat jika sukses
         $path = $request->file('foto')->store('uploads', 'supabase');
-        if (!$path) {
+        if (! $path) {
             \Log::error('Upload foto ke Supabase Storage gagal. Cek kredensial SUPABASE_STORAGE_*.');
+
             return response()->json(['errors' => ['foto' => ['Gagal menyimpan foto, coba lagi.']]], 500);
         }
+
         Absensi::create([
             'karyawan_id' => $karyawan->id,
             'tanggal' => now()->toDateString(),

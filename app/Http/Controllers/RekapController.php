@@ -36,12 +36,20 @@ class RekapController extends Controller
 
     /**
      * Update status absensi (hadir / tidak hadir) - untuk admin & super_admin.
+     * Admin tidak boleh mengubah status absensi dirinya sendiri.
      */
     public function updateStatus(Request $request, Absensi $absensi)
     {
         $request->validate([
             'status_absensi' => 'required|in:hadir,tidak_hadir',
         ]);
+
+        $user = Auth::user();
+
+        // Admin (bukan super_admin) tidak boleh mengubah status absensi sendiri
+        if ($user->role === 'admin' && $absensi->karyawan_id === $user->id) {
+            return back()->withErrors('Anda tidak dapat mengubah status absensi sendiri.');
+        }
 
         $absensi->update([
             'status_absensi' => $request->status_absensi,
