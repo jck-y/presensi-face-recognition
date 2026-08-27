@@ -80,7 +80,7 @@
                     <td>{{ $row->tanggal }}</td>
                     <td>{{ \Carbon\Carbon::parse($row->waktu)->format('H:i') }}</td>
                     <td>{{ ucfirst($row->jenis_absensi) }}</td>
-                    <td>{{ $row->status_absensi }}</td>
+                    <td>{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</td>
                 </tr>
             @empty
                 <tr>

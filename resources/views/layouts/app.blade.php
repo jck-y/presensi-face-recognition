@@ -28,7 +28,7 @@
                 @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                     <a class="nav-link" href="{{ route('karyawan.index') }}">Data Karyawan</a>
                 @endif
-                @if(auth()->user()->role === 'admin')
+                @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                     <a class="nav-link" href="{{ route('office-setting.edit') }}">Pengaturan Lokasi</a>
                 @endif
                 @if(auth()->user()->role === 'super_admin')

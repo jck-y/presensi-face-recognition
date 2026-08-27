@@ -34,6 +34,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
     Route::get('/rekap/export-pdf', [RekapController::class, 'exportPdf'])->name('rekap.export-pdf');
 
+    // Admin & Super Admin: update status absensi di rekap
+    Route::middleware('role:admin,super_admin')->group(function () {
+        Route::put('/rekap/{absensi}/status', [RekapController::class, 'updateStatus'])->name('rekap.update-status');
+    });
+
     // Super admin: hanya bisa edit password sendiri
     Route::middleware('role:super_admin')->group(function () {
         Route::get('/super-admin/edit-password', [KaryawanController::class, 'editPassword'])->name('super-admin.edit-password');

@@ -35,6 +35,22 @@ class RekapController extends Controller
     }
 
     /**
+     * Update status absensi (hadir / tidak hadir) - untuk admin & super_admin.
+     */
+    public function updateStatus(Request $request, Absensi $absensi)
+    {
+        $request->validate([
+            'status_absensi' => 'required|in:hadir,tidak_hadir',
+        ]);
+
+        $absensi->update([
+            'status_absensi' => $request->status_absensi,
+        ]);
+
+        return back()->with('status', 'Status absensi berhasil diperbarui.');
+    }
+
+    /**
      * Export rekap presensi ke PDF (untuk admin & pimpinan).
      */
     public function exportPdf(Request $request)

@@ -47,7 +47,17 @@
                             <div class="fw-bold">{{ $row->karyawan->nama_karyawan }}</div>
                             <div class="text-muted small">{{ $row->karyawan->divisi->nama_divisi }}</div>
                         </div>
-                        <span class="badge bg-info text-dark flex-shrink-0">{{ $row->status_absensi }}</span>
+                        @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+                        <form action="{{ route('rekap.update-status', $row) }}" method="POST" class="flex-shrink-0">
+                            @csrf @method('PUT')
+                            <select name="status_absensi" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="hadir" {{ $row->status_absensi === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                <option value="tidak_hadir" {{ $row->status_absensi === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
+                            </select>
+                        </form>
+                        @else
+                        <span class="badge bg-info text-dark flex-shrink-0">{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</span>
+                        @endif
                     </div>
                     <div class="small text-muted mb-3">
                         {{ $row->tanggal }} · {{ $row->waktu }} · {{ ucfirst($row->jenis_absensi) }}
@@ -86,7 +96,17 @@
                         <td>{{ $row->waktu }}</td>
                         <td>{{ ucfirst($row->jenis_absensi) }}</td>
                         <td>
-                            <span class="badge bg-info text-dark">{{ $row->status_absensi }}</span>
+                            @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
+                            <form action="{{ route('rekap.update-status', $row) }}" method="POST" class="d-inline">
+                                @csrf @method('PUT')
+                                <select name="status_absensi" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()">
+                                    <option value="hadir" {{ $row->status_absensi === 'hadir' ? 'selected' : '' }}>Hadir</option>
+                                    <option value="tidak_hadir" {{ $row->status_absensi === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
+                                </select>
+                            </form>
+                            @else
+                            <span class="badge bg-info text-dark">{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</span>
+                            @endif
                         </td>
                         <td>
                             <a href="{{ Storage::disk('supabase')->url($row->foto_path) }}" target="_blank">
