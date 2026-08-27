@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Absensi;
 use App\Models\Divisi;
 use App\Models\Karyawan;
 use Illuminate\Http\Request;
@@ -24,7 +25,17 @@ class KaryawanController extends Controller
             ->where('role', 'pimpinan')
             ->paginate(15, ['*'], 'pimpinan_page');
 
-        return view('karyawan.index', compact('karyawans', 'admins', 'pimpinans'));
+        // Cek apakah admin yang login sudah absen hari ini
+        $user = Auth::user();
+        $todayAttendance = null;
+        if ($user->role === 'admin') {
+            $todayAttendance = Absensi::where('karyawan_id', $user->id)
+                ->where('tanggal', now()->toDateString())
+                ->where('jenis_absensi', 'masuk')
+                ->first();
+        }
+
+        return view('karyawan.index', compact('karyawans', 'admins', 'pimpinans', 'todayAttendance'));
     }
 
     public function create()

@@ -72,7 +72,7 @@ class AbsensiController extends Controller
 
         // 3. Verifikasi AI ke FastAPI
         try {
-            $response = Http::timeout(9)
+            $response = Http::timeout(30)
                 ->withHeaders(['ngrok-skip-browser-warning' => 'true'])
                 ->attach(
                     'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'

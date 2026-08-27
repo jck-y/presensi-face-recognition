@@ -22,6 +22,9 @@
                 @if(auth()->user()->role === 'karyawan')
                     <a class="nav-link" href="{{ route('presensi.form') }}">Presensi</a>
                 @endif
+                @if(auth()->user()->role === 'admin')
+                    <a class="nav-link" href="{{ route('presensi.form') }}">Presensi Admin</a>
+                @endif
                 @if(in_array(auth()->user()->role, ['admin', 'pimpinan', 'super_admin']))
                     <a class="nav-link" href="{{ route('rekap.index') }}">Rekap</a>
                 @endif

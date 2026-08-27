@@ -1,5 +1,31 @@
 @extends('layouts.app')
 @section('content')
+
+{{-- Presensi Admin: card prominent di atas dashboard --}}
+@if(auth()->user()->role === 'admin')
+<div class="card mb-4 border-primary">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h5 class="card-title mb-1">📋 Presensi Hari Ini</h5>
+            @if($todayAttendance)
+                <span class="text-success fw-bold">✅ Sudah absen masuk</span>
+                <span class="text-muted ms-2">{{ \Carbon\Carbon::parse($todayAttendance->waktu)->format('d M Y H:i') }}</span>
+            @else
+                <span class="text-warning fw-bold">⚠️ Belum absen hari ini</span>
+            @endif
+        </div>
+        <div class="d-flex gap-2">
+            @if(!$todayAttendance)
+                <a href="{{ route('presensi.form') }}" class="btn btn-primary btn-lg">🔄 Absen Sekarang</a>
+            @else
+                <a href="{{ route('presensi.form') }}" class="btn btn-outline-secondary btn-sm">Lihat Detail</a>
+            @endif
+            <a href="{{ route('rekap.index') }}" class="btn btn-outline-info btn-sm">📊 Lihat Rekap</a>
+        </div>
+    </div>
+</div>
+@endif
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h3 class="mb-0">Data Karyawan</h3>
     @if(in_array(auth()->user()->role, ['admin', 'super_admin']))

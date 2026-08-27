@@ -27,7 +27,7 @@ Route::middleware('auth')->group(function () {
             'pimpinan' => redirect()->route('rekap.index'),
             'karyawan' => redirect()->route('presensi.form'),
         };
-    })->name('redirect-home')->middleware('admin.attended');
+    })->name('redirect-home');
 
     Route::get('/presensi', [AbsensiController::class, 'form'])->name('presensi.form');
     Route::post('/presensi', [AbsensiController::class, 'store'])->name('presensi.store');

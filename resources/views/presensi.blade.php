@@ -196,33 +196,50 @@ document.getElementById('formPresensi').addEventListener('submit', function (e) 
     btnKirim.disabled = true;
     showLoading('Memproses wajah, mohon tunggu...');
 
+    // Timeout 30 detik agar cukup untuk verifikasi ke Colab via Vercel
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
     fetch("{{ route('presensi.store') }}", {
         method: 'POST',
         body: formData,
         headers: { 'Accept': 'application/json' },
+        signal: controller.signal,
     })
-    .then(res => res.json())
+    .then(res => {
+        clearTimeout(timeoutId);
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+            // Server return HTML (error page, redirect, dll)
+            throw new Error('Server mengembalikan respons yang tidak valid (HTTP ' + res.status + ').');
+        }
+        return res.json();
+    })
     .then(data => {
         hideLoading();
         if (data.status) {
             alert(data.status);
-            @if(auth()->user()->role === 'admin')
-                // Admin: langsung ke dashboard setelah absen
-                window.location.replace("{{ route('redirect-home') }}");
-            @else
-                // Karyawan: reload halaman presensi
-                window.location.replace("{{ route('presensi.form') }}");
-            @endif
+            window.location.replace("{{ route('presensi.form') }}");
         } else if (data.errors) {
             alert(Object.values(data.errors).flat().join('\n'));
             btnKirim.innerText = originalText;
             btnKirim.disabled = false;
             updateSubmitState();
+        } else {
+            alert('Terjadi kesalahan tidak diketahui dari server.');
+            btnKirim.innerText = originalText;
+            btnKirim.disabled = false;
+            updateSubmitState();
         }
     })
-    .catch(() => {
+    .catch(err => {
+        clearTimeout(timeoutId);
         hideLoading();
-        alert('Terjadi kesalahan koneksi server. Coba lagi.');
+        if (err.name === 'AbortError') {
+            alert('Permintaan habis waktu (timeout). Pastikan layanan verifikasi wajah aktif dan coba lagi.');
+        } else {
+            alert('Terjadi kesalahan: ' + err.message);
+        }
         btnKirim.innerText = originalText;
         btnKirim.disabled = false;
         updateSubmitState();
