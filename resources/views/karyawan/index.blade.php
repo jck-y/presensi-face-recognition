@@ -2,7 +2,7 @@
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h3 class="mb-0">Data Karyawan</h3>
-    @if(auth()->user()->role !== 'super_admin')
+    @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
     <a href="{{ route('karyawan.create') }}" class="btn btn-primary">+ Tambah Akun</a>
     @endif
 </div>
