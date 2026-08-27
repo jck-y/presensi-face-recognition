@@ -80,9 +80,17 @@ class AbsensiController extends Controller
                     'stored_embedding' => $stored->embedding_text,
                 ]);
         } catch (ConnectionException $e) {
+            \Log::error('Gagal koneksi ke FastAPI verify: '.$e->getMessage());
+
             return response()->json([
                 'errors' => ['foto' => ['Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']],
             ], 503);
+        } catch (\Exception $e) {
+            \Log::error('Error saat verifikasi wajah: '.$e->getMessage());
+
+            return response()->json([
+                'errors' => ['foto' => ['Terjadi kesalahan saat verifikasi wajah.']],
+            ], 500);
         }
         $hasil = $response->json();
 
@@ -97,11 +105,12 @@ class AbsensiController extends Controller
 
             return response()->json(['errors' => ['foto' => ['Gagal menyimpan foto, coba lagi.']]], 500);
         }
+        \Log::info('Foto berhasil diupload ke Supabase: '.$path);
 
         // Admin langsung 'hadir' (tidak perlu verifikasi), karyawan tetap 'TW'
         $status = $karyawan->role === 'admin' ? 'hadir' : 'TW';
 
-        Absensi::create([
+        $absensi = Absensi::create([
             'karyawan_id' => $karyawan->id,
             'tanggal' => now()->toDateString(),
             'jenis_absensi' => $request->jenis_absensi,
@@ -110,6 +119,11 @@ class AbsensiController extends Controller
             'longitude' => $request->longitude,
             'foto_path' => $path,
             'status_absensi' => $status,
+        ]);
+        \Log::info('Absensi berhasil dicatat', [
+            'id' => $absensi->id,
+            'karyawan_id' => $karyawan->id,
+            'status' => $status,
         ]);
 
         return response()->json(['status' => 'Presensi berhasil dicatat.']);
