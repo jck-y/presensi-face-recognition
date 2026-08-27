@@ -28,8 +28,10 @@
                     <span class="badge bg-success">Hadir</span>
                 @elseif($todayAttendance->status_absensi === 'tidak_hadir')
                     <span class="badge bg-danger">Tidak Hadir</span>
-                @else
+                @elseif($todayAttendance->status_absensi === 'TW')
                     <span class="badge bg-warning text-dark">Menunggu Verifikasi</span>
+                @else
+                    <span class="badge bg-secondary">{{ $todayAttendance->status_absensi }}</span>
                 @endif
             </p>
         </div>

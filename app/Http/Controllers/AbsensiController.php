@@ -107,9 +107,8 @@ class AbsensiController extends Controller
         }
         \Log::info('Foto berhasil diupload ke Supabase: '.$path);
 
-        // Admin langsung 'hadir' (status 'hadir' dianggap sebagai TW dalam sistem)
-        // Karena enum hanya menerima: TW, TR, TA, PA, LR
-        $status = 'TW';
+        // Admin langsung 'hadir', karyawan tetap 'TW' (menunggu verifikasi)
+        $status = $karyawan->role === 'admin' ? 'hadir' : 'TW';
 
         $absensi = Absensi::create([
             'karyawan_id' => $karyawan->id,
