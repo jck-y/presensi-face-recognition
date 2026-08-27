@@ -2,22 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Karyawan;
 use App\Models\Divisi;
+use App\Models\Karyawan;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class KaryawanController extends Controller
 {
     public function index()
     {
-        $karyawans = Karyawan::with('divisi')->paginate(15);
-        return view('karyawan.index', compact('karyawans'));
+        $karyawans = Karyawan::with('divisi')
+            ->where('role', 'karyawan')
+            ->paginate(15, ['*'], 'karyawan_page');
+
+        $admins = Karyawan::with('divisi')
+            ->where('role', 'admin')
+            ->paginate(15, ['*'], 'admin_page');
+
+        $pimpinans = Karyawan::with('divisi')
+            ->where('role', 'pimpinan')
+            ->paginate(15, ['*'], 'pimpinan_page');
+
+        return view('karyawan.index', compact('karyawans', 'admins', 'pimpinans'));
     }
 
     public function create()
     {
         $divisis = Divisi::all();
+
         return view('karyawan.create', compact('divisis'));
     }
 
@@ -42,16 +55,27 @@ class KaryawanController extends Controller
 
     public function edit(Karyawan $karyawan)
     {
+        // Super admin hanya bisa edit password sendiri
+        if ($karyawan->role === 'super_admin') {
+            return redirect()->route('super-admin.edit-password');
+        }
+
         $divisis = Divisi::all();
+
         return view('karyawan.edit', compact('karyawan', 'divisis'));
     }
 
     public function update(Request $request, Karyawan $karyawan)
     {
+        // Super admin tidak bisa diedit dari sini
+        if ($karyawan->role === 'super_admin') {
+            return redirect()->route('karyawan.index')->with('status', 'Super admin tidak dapat diedit dari sini.');
+        }
+
         $data = $request->validate([
-            'nip' => 'required|unique:karyawans,nip,' . $karyawan->id,
+            'nip' => 'required|unique:karyawans,nip,'.$karyawan->id,
             'nama_karyawan' => 'required',
-            'email' => 'required|email|unique:karyawans,email,' . $karyawan->id,
+            'email' => 'required|email|unique:karyawans,email,'.$karyawan->id,
             'divisi_id' => 'required|exists:divisis,id',
             'role' => 'required|in:admin,pimpinan,karyawan',
             'alamat' => 'nullable',
@@ -70,7 +94,41 @@ class KaryawanController extends Controller
 
     public function destroy(Karyawan $karyawan)
     {
+        // Super admin tidak bisa dihapus
+        if ($karyawan->role === 'super_admin') {
+            return redirect()->route('karyawan.index')->with('status', 'Super admin tidak dapat dihapus.');
+        }
+
         $karyawan->delete();
+
         return redirect()->route('karyawan.index')->with('status', 'Karyawan berhasil dihapus.');
+    }
+
+    /**
+     * Super admin: form edit password sendiri.
+     */
+    public function editPassword()
+    {
+        $karyawan = Auth::user();
+
+        return view('karyawan.edit-password', compact('karyawan'));
+    }
+
+    /**
+     * Super admin: update password sendiri.
+     */
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'password' => 'required|min:6',
+            'password_confirmation' => 'required|same:password',
+        ]);
+
+        $karyawan = Auth::user();
+        $karyawan->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return redirect()->route('karyawan.index')->with('status', 'Password berhasil diperbarui.');
     }
 }

@@ -2,66 +2,44 @@
 @section('content')
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h3 class="mb-0">Data Karyawan</h3>
+    @if(auth()->user()->role !== 'super_admin')
     <a href="{{ route('karyawan.create') }}" class="btn btn-primary">+ Tambah Karyawan</a>
+    @endif
 </div>
 
-<!-- Tampilan Mobile: Kartu -->
-<div class="d-md-none">
-    @forelse($karyawans as $k)
-        <div class="card mb-3 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start gap-2">
-                    <div class="me-2">
-                        <div class="fw-bold">{{ $k->nama_karyawan }}</div>
-                        <div class="small text-muted">NIP: {{ $k->nip }}</div>
-                        <div class="small text-muted">{{ $k->divisi->nama_divisi }} · {{ $k->role }}</div>
-                    </div>
-                    <div class="d-flex flex-column gap-1 flex-shrink-0">
-                        <a href="{{ route('karyawan.edit', $k) }}" class="btn btn-sm btn-warning">Edit</a>
-                        <a href="{{ route('karyawan.enroll-wajah', $k) }}" class="btn btn-sm btn-info">Wajah</a>
-                        <form action="{{ route('karyawan.destroy', $k) }}" method="POST"
-                              onsubmit="return confirm('Yakin hapus karyawan ini? Data presensi & wajahnya ikut terhapus.')"
-                              data-loading-message="Menghapus karyawan...">
-                            @csrf @method('DELETE')
-                            <button class="btn btn-sm btn-danger w-100">Hapus</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @empty
-        <div class="text-center text-muted py-4">Belum ada karyawan.</div>
-    @endforelse
-</div>
+<!-- Tabs Navigasi -->
+<ul class="nav nav-tabs mb-3" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-karyawan" type="button" role="tab">
+            Karyawan <span class="badge bg-secondary">{{ $karyawans->total() }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-admin" type="button" role="tab">
+            Admin <span class="badge bg-secondary">{{ $admins->total() }}</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-pimpinan" type="button" role="tab">
+            Pimpinan <span class="badge bg-secondary">{{ $pimpinans->total() }}</span>
+        </button>
+    </li>
+</ul>
 
-<!-- Tampilan Desktop: Tabel -->
-<div class="table-responsive d-none d-md-block">
-    <table class="table table-bordered bg-white">
-        <thead>
-            <tr><th>NIP</th><th>Nama</th><th>Divisi</th><th>Role</th><th>Aksi</th></tr>
-        </thead>
-        <tbody>
-        @foreach($karyawans as $k)
-            <tr>
-                <td>{{ $k->nip }}</td>
-                <td>{{ $k->nama_karyawan }}</td>
-                <td>{{ $k->divisi->nama_divisi }}</td>
-                <td>{{ $k->role }}</td>
-                <td>
-                    <a href="{{ route('karyawan.edit', $k) }}" class="btn btn-sm btn-warning">Edit</a>
-                    <a href="{{ route('karyawan.enroll-wajah', $k) }}" class="btn btn-sm btn-info">Kelola Wajah</a>
-                    <form action="{{ route('karyawan.destroy', $k) }}" method="POST" class="d-inline"
-                          onsubmit="return confirm('Yakin hapus karyawan ini? Data presensi & wajahnya ikut terhapus.')"
-                          data-loading-message="Menghapus karyawan...">
-                        @csrf @method('DELETE')
-                        <button class="btn btn-sm btn-danger">Hapus</button>
-                    </form>
-                </td>
-            </tr>
-        @endforeach
-        </tbody>
-    </table>
-</div>
+<div class="tab-content">
+    <!-- Tab Karyawan -->
+    <div class="tab-pane fade show active" id="tab-karyawan" role="tabpanel">
+        @include('karyawan._partials.table', ['items' => $karyawans, 'emptyMessage' => 'Belum ada karyawan biasa.', 'paginationName' => 'karyawan_page'])
+    </div>
 
-{{ $karyawans->links('pagination::bootstrap-5') }}
+    <!-- Tab Admin -->
+    <div class="tab-pane fade" id="tab-admin" role="tabpanel">
+        @include('karyawan._partials.table', ['items' => $admins, 'emptyMessage' => 'Belum ada admin.', 'paginationName' => 'admin_page'])
+    </div>
+
+    <!-- Tab Pimpinan -->
+    <div class="tab-pane fade" id="tab-pimpinan" role="tabpanel">
+        @include('karyawan._partials.table', ['items' => $pimpinans, 'emptyMessage' => 'Belum ada pimpinan.', 'paginationName' => 'pimpinan_page'])
+    </div>
+</div>
 @endsection

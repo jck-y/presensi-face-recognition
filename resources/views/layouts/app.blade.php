@@ -22,12 +22,17 @@
                 @if(auth()->user()->role === 'karyawan')
                     <a class="nav-link" href="{{ route('presensi.form') }}">Presensi</a>
                 @endif
-                @if(in_array(auth()->user()->role, ['admin', 'pimpinan']))
+                @if(in_array(auth()->user()->role, ['admin', 'pimpinan', 'super_admin']))
                     <a class="nav-link" href="{{ route('rekap.index') }}">Rekap</a>
                 @endif
-                @if(auth()->user()->role === 'admin')
+                @if(in_array(auth()->user()->role, ['admin', 'super_admin']))
                     <a class="nav-link" href="{{ route('karyawan.index') }}">Data Karyawan</a>
+                @endif
+                @if(auth()->user()->role === 'admin')
                     <a class="nav-link" href="{{ route('office-setting.edit') }}">Pengaturan Lokasi</a>
+                @endif
+                @if(auth()->user()->role === 'super_admin')
+                    <a class="nav-link" href="{{ route('super-admin.edit-password') }}">Edit Password</a>
                 @endif
             @endauth
         </div>

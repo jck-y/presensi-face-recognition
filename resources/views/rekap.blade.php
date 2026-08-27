@@ -28,6 +28,11 @@
             <div class="col-12 col-sm-auto d-flex gap-2">
                 <button type="submit" class="btn btn-success flex-fill">Filter</button>
                 <a href="{{ route('rekap.index') }}" class="btn btn-secondary flex-fill">Reset</a>
+                @if(in_array(auth()->user()->role, ['admin', 'pimpinan', 'super_admin']))
+                <a href="{{ route('rekap.export-pdf', request()->query()) }}" class="btn btn-danger flex-fill" target="_blank">
+                    📄 Export PDF
+                </a>
+                @endif
             </div>
         </form>
     </div>

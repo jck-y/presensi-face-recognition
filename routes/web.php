@@ -22,7 +22,7 @@ Route::middleware('auth')->group(function () {
     // Titik masuk setelah login, mengarahkan sesuai role
     Route::get('/home', function () {
         return match (auth()->user()->role) {
-            'admin' => redirect()->route('karyawan.index'),
+            'admin', 'super_admin' => redirect()->route('karyawan.index'),
             'pimpinan' => redirect()->route('rekap.index'),
             'karyawan' => redirect()->route('presensi.form'),
         };
@@ -32,8 +32,15 @@ Route::middleware('auth')->group(function () {
     Route::post('/presensi', [AbsensiController::class, 'store'])->name('presensi.store');
 
     Route::get('/rekap', [RekapController::class, 'index'])->name('rekap.index');
+    Route::get('/rekap/export-pdf', [RekapController::class, 'exportPdf'])->name('rekap.export-pdf');
 
-    Route::middleware('role:admin')->group(function () {
+    // Super admin: hanya bisa edit password sendiri
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('/super-admin/edit-password', [KaryawanController::class, 'editPassword'])->name('super-admin.edit-password');
+        Route::put('/super-admin/edit-password', [KaryawanController::class, 'updatePassword'])->name('super-admin.update-password');
+    });
+
+    Route::middleware('role:admin,super_admin')->group(function () {
         // Route untuk CRUD Karyawan
         Route::resource('karyawan', KaryawanController::class)->except('show');
         Route::get('/pengaturan-lokasi', [OfficeSettingController::class, 'edit'])->name('office-setting.edit');
