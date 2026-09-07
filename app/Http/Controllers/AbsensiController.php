@@ -117,6 +117,10 @@ class AbsensiController extends Controller
         // Admin langsung 'hadir', karyawan tetap 'TW' (menunggu verifikasi)
         $status = $karyawan->role === 'admin' ? 'hadir' : 'TW';
 
+        if ($request->jenis_absensi === 'masuk') {
+            $batasTepatWaktu = now()->copy()->setTimeFromTimeString('08:00:00');
+            $statusAbsensi = now()->greaterThan($batasTepatWaktu) ? 'TR' : 'TW';
+        }
         $absensi = Absensi::create([
             'karyawan_id' => $karyawan->id,
             'tanggal' => now()->toDateString(),
