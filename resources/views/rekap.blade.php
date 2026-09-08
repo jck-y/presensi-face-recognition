@@ -38,46 +38,96 @@
     </div>
 
     <!-- Tampilan Mobile: Kartu -->
-    <div class="d-md-none">
-        @forelse($rekap as $row)
-            <div class="card mb-3 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                        <div>
-                            <div class="fw-bold">{{ $row->karyawan->nama_karyawan }}</div>
-                            <div class="text-muted small">{{ $row->karyawan->divisi->nama_divisi }}</div>
+```php
+<div class="d-md-none">
+    @forelse($rekap as $row)
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                    <div>
+                        <div class="fw-bold">
+                            {{ $row->karyawan->nama_karyawan }}
                         </div>
-                        @php
-                            $isOwnRecord = auth()->id() === $row->karyawan_id;
-                            $canEditStatus = in_array(auth()->user()->role, ['admin', 'super_admin']) && !$isOwnRecord;
-                        @endphp
-                        @if($canEditStatus)
-                        <form action="{{ route('rekap.update-status', $row) }}" method="POST" class="flex-shrink-0">
-                            @csrf @method('PUT')
-                            <select name="status_absensi" class="form-select form-select-sm" onchange="this.form.submit()">
-                                <option value="hadir" {{ $row->status_absensi === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                                <option value="tidak_hadir" {{ $row->status_absensi === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
-                            </select>
-                        </form>
-                        @elseif(in_array(auth()->user()->role, ['admin', 'super_admin']) && $isOwnRecord)
-                        <span class="badge bg-secondary flex-shrink-0">{{ $row->status_absensi === 'hadir' ? 'Hadir' : ($row->status_absensi === 'tidak_hadir' ? 'Tidak Hadir' : 'Menunggu Verifikasi') }}</span>
-                        @else
-                        <span class="badge bg-info text-dark flex-shrink-0">{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</span>
-                        @endif
+
+                        <div class="text-muted small">
+                            {{ $row->karyawan->divisi->nama_divisi }}
+                        </div>
                     </div>
-                    <div class="small text-muted mb-3">
-                        {{ $row->tanggal }} · {{ $row->waktu }} · {{ ucfirst($row->jenis_absensi) }}
-                    </div>
-                    <a href="{{ Storage::disk('supabase')->url($row->foto_path) }}" target="_blank">
-                        <img src="{{ Storage::disk('supabase')->url($row->foto_path) }}" width="80" height="80"
-                             class="rounded border object-fit-cover" alt="Foto presensi">
-                    </a>
+
+                    <span class="badge bg-primary">
+                        {{ $row->hasil_hari }}
+                    </span>
                 </div>
+
+                <div class="small mb-2">
+                    <strong>Tanggal:</strong>
+                    {{ $row->tanggal }}
+                </div>
+
+                <div class="small mb-2">
+                    <strong>Masuk:</strong>
+
+                    @if($row->waktu_masuk)
+                        {{ \Carbon\Carbon::parse($row->waktu_masuk)->format('H:i:s') }}
+                    @else
+                        -
+                    @endif
+                </div>
+
+                <div class="small mb-2">
+                    <strong>Pulang:</strong>
+
+                    @if($row->waktu_pulang)
+                        {{ \Carbon\Carbon::parse($row->waktu_pulang)->format('H:i:s') }}
+                    @else
+                        -
+                    @endif
+                </div>
+
+                <div class="small mb-3">
+                    <strong>Status:</strong>
+
+                    @if($row->status_absensi === 'hadir')
+                        <span class="badge bg-success">Hadir</span>
+                    @elseif($row->status_absensi === 'TR')
+                        <span class="badge bg-warning text-dark">Terlambat</span>
+                    @elseif($row->status_absensi === 'PC')
+                        <span class="badge bg-warning text-dark">Pulang Cepat</span>
+                    @elseif($row->status_absensi === 'pulang')
+                        <span class="badge bg-success">Pulang Tepat Waktu</span>
+                    @elseif($row->status_absensi === 'tidak_hadir')
+                        <span class="badge bg-danger">Tidak Hadir</span>
+                    @else
+                        <span class="badge bg-secondary">
+                            {{ $row->status_absensi }}
+                        </span>
+                    @endif
+                </div>
+
+                <a
+                    href="{{ Storage::disk('supabase')->url($row->foto_path) }}"
+                    target="_blank"
+                >
+                    <img
+                        src="{{ Storage::disk('supabase')->url($row->foto_path) }}"
+                        width="80"
+                        height="80"
+                        class="rounded border object-fit-cover"
+                        alt="Foto presensi"
+                    >
+                </a>
+
             </div>
-        @empty
-            <div class="text-center text-muted py-4">Belum ada data presensi.</div>
-        @endforelse
-    </div>
+        </div>
+    @empty
+        <div class="text-center text-muted py-4">
+            Belum ada data presensi.
+        </div>
+    @endforelse
+</div>
+```
+
 
     <!-- Tampilan Desktop: Tabel -->
     <div class="table-responsive d-none d-md-block">
@@ -87,51 +137,95 @@
                     <th>Nama Karyawan</th>
                     <th>Divisi</th>
                     <th>Tanggal</th>
-                    <th>Waktu</th>
-                    <th>Jenis</th>
+                    <th>Masuk</th>
+                    <th>Pulang</th>
+                    <th>Hasil Hari</th>
                     <th>Status</th>
                     <th>Foto</th>
                 </tr>
             </thead>
-            <tbody>
-                @forelse($rekap as $row)
-                    <tr>
-                        <td>{{ $row->karyawan->nama_karyawan }}</td>
-                        <td>{{ $row->karyawan->divisi->nama_divisi }}</td>
-                        <td>{{ $row->tanggal }}</td>
-                        <td>{{ $row->waktu }}</td>
-                        <td>{{ ucfirst($row->jenis_absensi) }}</td>
-                        <td>
-                            @php
-                                $isOwnRecord = auth()->id() === $row->karyawan_id;
-                                $canEditStatus = in_array(auth()->user()->role, ['admin', 'super_admin']) && !$isOwnRecord;
-                            @endphp
-                            @if($canEditStatus)
-                            <form action="{{ route('rekap.update-status', $row) }}" method="POST" class="d-inline">
-                                @csrf @method('PUT')
-                                <select name="status_absensi" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()">
-                                    <option value="hadir" {{ $row->status_absensi === 'hadir' ? 'selected' : '' }}>Hadir</option>
-                                    <option value="tidak_hadir" {{ $row->status_absensi === 'tidak_hadir' ? 'selected' : '' }}>Tidak Hadir</option>
-                                </select>
-                            </form>
-                            @elseif(in_array(auth()->user()->role, ['admin', 'super_admin']) && $isOwnRecord)
-                            <span class="badge bg-secondary">{{ $row->status_absensi === 'hadir' ? 'Hadir' : ($row->status_absensi === 'tidak_hadir' ? 'Tidak Hadir' : 'Menunggu Verifikasi') }}</span>
-                            @else
-                            <span class="badge bg-info text-dark">{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</span>
-                            @endif
-                        </td>
-                        <td>
-                            <a href="{{ Storage::disk('supabase')->url($row->foto_path) }}" target="_blank">
-                                <img src="{{ Storage::disk('supabase')->url($row->foto_path) }}" width="60" class="rounded border">
-                            </a>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-4">Belum ada data presensi.</td>
-                    </tr>
-                @endforelse
-            </tbody>
+<tbody>
+    @forelse($rekap as $row)
+        <tr>
+            <td>{{ $row->karyawan->nama_karyawan }}</td>
+
+            <td>{{ $row->karyawan->divisi->nama_divisi }}</td>
+
+            <td>{{ $row->tanggal }}</td>
+
+            <td>
+                @if($row->waktu_masuk)
+                    {{ \Carbon\Carbon::parse($row->waktu_masuk)->format('H:i:s') }}
+                @else
+                    -
+                @endif
+            </td>
+
+            <td>
+                @if($row->waktu_pulang)
+                    {{ \Carbon\Carbon::parse($row->waktu_pulang)->format('H:i:s') }}
+                @else
+                    -
+                @endif
+            </td>
+
+            <td>
+                @if($row->hasil_hari === 'Hadir')
+                    <span class="badge bg-success">Hadir</span>
+                @elseif($row->hasil_hari === 'Terlambat')
+                    <span class="badge bg-warning text-dark">Terlambat</span>
+                @elseif($row->hasil_hari === 'Pulang Cepat')
+                    <span class="badge bg-warning text-dark">Pulang Cepat</span>
+                @elseif($row->hasil_hari === 'Terlambat & Pulang Cepat')
+                    <span class="badge bg-danger">Terlambat & Pulang Cepat</span>
+                @elseif($row->hasil_hari === 'Terlambat & Belum Pulang')
+                    <span class="badge bg-warning text-dark">Terlambat & Belum Pulang</span>
+                @elseif($row->hasil_hari === 'Belum Pulang')
+                    <span class="badge bg-info text-dark">Belum Pulang</span>
+                @else
+                    <span class="badge bg-secondary">{{ $row->hasil_hari }}</span>
+                @endif
+            </td>
+
+            <td>
+                @if($row->status_absensi === 'hadir')
+                    <span class="badge bg-success">Hadir</span>
+                @elseif($row->status_absensi === 'TR')
+                    <span class="badge bg-warning text-dark">Terlambat</span>
+                @elseif($row->status_absensi === 'PC')
+                    <span class="badge bg-warning text-dark">Pulang Cepat</span>
+                @elseif($row->status_absensi === 'pulang')
+                    <span class="badge bg-success">Pulang Tepat Waktu</span>
+                @elseif($row->status_absensi === 'tidak_hadir')
+                    <span class="badge bg-danger">Tidak Hadir</span>
+                @else
+                    <span class="badge bg-secondary">{{ $row->status_absensi }}</span>
+                @endif
+            </td>
+
+            <td>
+                <a
+                    href="{{ Storage::disk('supabase')->url($row->foto_path) }}"
+                    target="_blank"
+                >
+                    <img
+                        src="{{ Storage::disk('supabase')->url($row->foto_path) }}"
+                        width="60"
+                        class="rounded border"
+                        alt="Foto presensi"
+                    >
+                </a>
+            </td>
+        </tr>
+    @empty
+        <tr>
+            <td colspan="8" class="text-center text-muted py-4">
+                Belum ada data presensi.
+            </td>
+        </tr>
+    @endforelse
+</tbody>
+
         </table>
     </div>
     

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Absensi;
 use App\Models\OfficeSetting;
 use App\Services\LocationService;
+use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,12 +18,13 @@ class AbsensiController extends Controller
     {
         $office = OfficeSetting::first();
         $user = Auth::user();
+        $today = Carbon::now('Asia/Jakarta')->toDateString();
 
-        // Jika admin (bukan super_admin), cek apakah sudah absen masuk hari ini
         $todayAttendance = null;
+
         if ($user->role === 'admin') {
             $todayAttendance = Absensi::where('karyawan_id', $user->id)
-                ->where('tanggal', now()->toDateString())
+                ->where('tanggal', $today)
                 ->where('jenis_absensi', 'masuk')
                 ->first();
         }
@@ -40,103 +42,212 @@ class AbsensiController extends Controller
         ]);
 
         $karyawan = Auth::user();
+        $nowWib = Carbon::now('Asia/Jakarta');
+        $today = $nowWib->toDateString();
 
-        // Admin (bukan super_admin) hanya boleh absen masuk sekali sehari
-        if ($karyawan->role === 'admin' && $request->jenis_absensi === 'masuk') {
-            $alreadyAttended = Absensi::where('karyawan_id', $karyawan->id)
-                ->where('tanggal', now()->toDateString())
+        $jenisAbsensi = $request->jenis_absensi;
+
+        $existingAttendance = Absensi::where('karyawan_id', $karyawan->id)
+            ->where('tanggal', $today)
+            ->where('jenis_absensi', $jenisAbsensi)
+            ->first();
+
+        if ($existingAttendance) {
+            return response()->json([
+                'errors' => [
+                    'jenis_absensi' => [
+                        'Anda sudah melakukan absensi ' . $jenisAbsensi . ' hari ini.'
+                    ]
+                ]
+            ], 422);
+        }
+
+        if ($jenisAbsensi === 'pulang') {
+            $attendanceMasuk = Absensi::where('karyawan_id', $karyawan->id)
+                ->where('tanggal', $today)
                 ->where('jenis_absensi', 'masuk')
                 ->first();
 
-            if ($alreadyAttended) {
-                // Jika status masih 'TW' (dari test lama), update ke 'hadir'
-                if ($alreadyAttended->status_absensi === 'TW') {
-                    $alreadyAttended->update(['status_absensi' => 'hadir']);
-
-                    return response()->json(['status' => 'Presensi berhasil dicatat.']);
-                }
-
+            if (! $attendanceMasuk) {
                 return response()->json([
-                    'errors' => ['foto' => ['Anda sudah melakukan absensi masuk hari ini.']],
+                    'errors' => [
+                        'jenis_absensi' => [
+                            'Anda belum melakukan absensi masuk hari ini.'
+                        ]
+                    ]
                 ], 422);
             }
         }
 
-        // 1. Cek Lokasi Database Baru
-        if (! LocationService::isWithinOffice($request->latitude, $request->longitude)) {
-            return response()->json(['errors' => ['lokasi' => ['Anda berada di luar radius kantor.']]], 422);
+        if (! LocationService::isWithinOffice(
+            $request->latitude,
+            $request->longitude
+        )) {
+            return response()->json([
+                'errors' => [
+                    'lokasi' => [
+                        'Anda berada di luar radius kantor.'
+                    ]
+                ]
+            ], 422);
         }
 
-        // 2. Ambil wajah terdaftar
         $stored = DB::selectOne(
             'SELECT embedding::text AS embedding_text FROM wajah_karyawan WHERE karyawan_id = ?',
             [$karyawan->id]
         );
 
         if (! $stored) {
-            return response()->json(['errors' => ['foto' => ['Wajah Anda belum didaftarkan, hubungi admin.']]], 422);
+            return response()->json([
+                'errors' => [
+                    'foto' => [
+                        'Wajah Anda belum didaftarkan, hubungi admin.'
+                    ]
+                ]
+            ], 422);
         }
 
-        // 3. Verifikasi AI ke FastAPI
         try {
             $response = Http::timeout(30)
-                ->withHeaders(['ngrok-skip-browser-warning' => 'true'])
+                ->withHeaders([
+                    'ngrok-skip-browser-warning' => 'true'
+                ])
                 ->attach(
-                    'file', file_get_contents($request->file('foto')->getRealPath()), 'presensi.jpg'
-                )->post(env('FASTAPI_URL', 'http://127.0.0.1:8001').'/verify', [
-                    'stored_embedding' => $stored->embedding_text,
-                ]);
+                    'file',
+                    file_get_contents(
+                        $request->file('foto')->getRealPath()
+                    ),
+                    'presensi.jpg'
+                )
+                ->post(
+                    env(
+                        'FASTAPI_URL',
+                        'http://127.0.0.1:8001'
+                    ) . '/verify',
+                    [
+                        'stored_embedding' => $stored->embedding_text,
+                    ]
+                );
         } catch (ConnectionException $e) {
-            \Log::error('Gagal koneksi ke FastAPI verify: '.$e->getMessage());
+            \Log::error(
+                'Gagal koneksi ke FastAPI verify: ' . $e->getMessage()
+            );
 
             return response()->json([
-                'errors' => ['foto' => ['Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.']],
+                'errors' => [
+                    'foto' => [
+                        'Servis pengenalan wajah belum aktif. Pastikan program di komputer admin sudah dijalankan.'
+                    ]
+                ]
             ], 503);
         } catch (\Exception $e) {
-            \Log::error('Error saat verifikasi wajah: '.$e->getMessage());
+            \Log::error(
+                'Error saat verifikasi wajah: ' . $e->getMessage()
+            );
 
             return response()->json([
-                'errors' => ['foto' => ['Terjadi kesalahan saat verifikasi wajah.']],
+                'errors' => [
+                    'foto' => [
+                        'Terjadi kesalahan saat verifikasi wajah.'
+                    ]
+                ]
             ], 500);
         }
+
         $hasil = $response->json();
 
         if (! ($hasil['match'] ?? false)) {
-            return response()->json(['errors' => ['foto' => ['Wajah tidak cocok, presensi ditolak.']]], 422);
+            return response()->json([
+                'errors' => [
+                    'foto' => [
+                        'Wajah tidak cocok, presensi ditolak.'
+                    ]
+                ]
+            ], 422);
         }
 
-        // 4. Catat jika sukses
-        $path = $request->file('foto')->store('uploads', 'supabase');
+        $path = $request->file('foto')->store(
+            'uploads',
+            'supabase'
+        );
+
         if (! $path) {
-            \Log::error('Upload foto ke Supabase Storage gagal. Cek kredensial SUPABASE_STORAGE_*.');
+            \Log::error(
+                'Upload foto ke Supabase Storage gagal. Cek kredensial SUPABASE_STORAGE_*.'
+            );
 
-            return response()->json(['errors' => ['foto' => ['Gagal menyimpan foto, coba lagi.']]], 500);
+            return response()->json([
+                'errors' => [
+                    'foto' => [
+                        'Gagal menyimpan foto, coba lagi.'
+                    ]
+                ]
+            ], 500);
         }
-        \Log::info('Foto berhasil diupload ke Supabase: '.$path);
 
-        // Admin langsung 'hadir', karyawan tetap 'TW' (menunggu verifikasi)
-        $status = $karyawan->role === 'admin' ? 'hadir' : 'TW';
+        $statusAbsensi = 'hadir';
 
-        if ($request->jenis_absensi === 'masuk') {
-            $batasTepatWaktu = now()->copy()->setTimeFromTimeString('08:00:00');
-            $statusAbsensi = now()->greaterThan($batasTepatWaktu) ? 'TR' : 'TW';
+        if ($jenisAbsensi === 'masuk') {
+            $batasMasuk = $nowWib->copy()->setTime(
+                8,
+                0,
+                0
+            );
+
+            if ($nowWib->greaterThan($batasMasuk)) {
+                $statusAbsensi = 'TR';
+            }
         }
+
+        if ($jenisAbsensi === 'pulang') {
+            $batasPulang = $nowWib->copy()->setTime(
+                17,
+                0,
+                0
+            );
+
+            if ($nowWib->lessThan($batasPulang)) {
+                $statusAbsensi = 'PC';
+            } else {
+                $statusAbsensi = 'pulang';
+            }
+        }
+
         $absensi = Absensi::create([
             'karyawan_id' => $karyawan->id,
-            'tanggal' => now()->toDateString(),
-            'jenis_absensi' => $request->jenis_absensi,
-            'waktu' => now(),
+            'tanggal' => $today,
+            'jenis_absensi' => $jenisAbsensi,
+            'waktu' => $nowWib,
             'latitude' => $request->latitude,
             'longitude' => $request->longitude,
             'foto_path' => $path,
-            'status_absensi' => $status,
+            'status_absensi' => $statusAbsensi,
         ]);
+
         \Log::info('Absensi berhasil dicatat', [
             'id' => $absensi->id,
             'karyawan_id' => $karyawan->id,
-            'status' => $status,
+            'jenis_absensi' => $jenisAbsensi,
+            'status' => $statusAbsensi,
+            'waktu_wib' => $nowWib->format('Y-m-d H:i:s'),
         ]);
 
-        return response()->json(['status' => 'Presensi berhasil dicatat.']);
+        if ($jenisAbsensi === 'masuk') {
+            if ($statusAbsensi === 'TR') {
+                $message = 'Presensi masuk berhasil. Status: Terlambat.';
+            } else {
+                $message = 'Presensi masuk berhasil. Status: Hadir.';
+            }
+        } else {
+            if ($statusAbsensi === 'PC') {
+                $message = 'Presensi pulang berhasil. Anda pulang sebelum pukul 17:00 WIB.';
+            } else {
+                $message = 'Presensi pulang berhasil.';
+            }
+        }
+
+        return response()->json([
+            'status' => $message
+        ]);
     }
 }

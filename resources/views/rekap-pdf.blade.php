@@ -58,36 +58,85 @@
     </div>
 
     <table>
-        <thead>
-            <tr>
-                <th>No</th>
-                <th>Nama Karyawan</th>
-                <th>NIP</th>
-                <th>Divisi</th>
-                <th>Tanggal</th>
-                <th>Waktu</th>
-                <th>Jenis</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($rekap as $index => $row)
-                <tr>
-                    <td>{{ $index + 1 }}</td>
-                    <td>{{ $row->karyawan->nama_karyawan }}</td>
-                    <td>{{ $row->karyawan->nip }}</td>
-                    <td>{{ $row->karyawan->divisi->nama_divisi }}</td>
-                    <td>{{ $row->tanggal }}</td>
-                    <td>{{ \Carbon\Carbon::parse($row->waktu)->format('H:i') }}</td>
-                    <td>{{ ucfirst($row->jenis_absensi) }}</td>
-                    <td>{{ $row->status_absensi === 'hadir' ? 'Hadir' : 'Tidak Hadir' }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="8" style="text-align: center;">Tidak ada data presensi.</td>
-                </tr>
-            @endforelse
-        </tbody>
+<thead>
+    <tr>
+        <th>No</th>
+        <th>Nama Karyawan</th>
+        <th>NIP</th>
+        <th>Divisi</th>
+        <th>Tanggal</th>
+        <th>Masuk</th>
+        <th>Pulang</th>
+        <th>Hasil Hari</th>
+        <th>Status Record</th>
+    </tr>
+</thead>
+
+<tbody>
+    @forelse($rekap as $index => $row)
+        <tr>
+            <td>{{ $index + 1 }}</td>
+
+            <td>
+                {{ $row->karyawan->nama_karyawan }}
+            </td>
+
+            <td>
+                {{ $row->karyawan->nip }}
+            </td>
+
+            <td>
+                {{ $row->karyawan->divisi->nama_divisi }}
+            </td>
+
+            <td>
+                {{ $row->tanggal }}
+            </td>
+
+            <td>
+                @if($row->waktu_masuk)
+                    {{ \Carbon\Carbon::parse($row->waktu_masuk)->format('H:i') }}
+                @else
+                    -
+                @endif
+            </td>
+
+            <td>
+                @if($row->waktu_pulang)
+                    {{ \Carbon\Carbon::parse($row->waktu_pulang)->format('H:i') }}
+                @else
+                    -
+                @endif
+            </td>
+
+            <td>
+                {{ $row->hasil_hari }}
+            </td>
+
+            <td>
+                @if($row->status_absensi === 'hadir')
+                    Hadir
+                @elseif($row->status_absensi === 'TR')
+                    Terlambat
+                @elseif($row->status_absensi === 'PC')
+                    Pulang Cepat
+                @elseif($row->status_absensi === 'pulang')
+                    Pulang Tepat Waktu
+                @elseif($row->status_absensi === 'tidak_hadir')
+                    Tidak Hadir
+                @else
+                    {{ $row->status_absensi }}
+                @endif
+            </td>
+        </tr>
+    @empty
+        <tr>
+            <td colspan="9" style="text-align: center;">
+                Tidak ada data presensi.
+            </td>
+        </tr>
+    @endforelse
+</tbody>
     </table>
 
     <div class="footer">
